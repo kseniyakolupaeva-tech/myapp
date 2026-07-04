@@ -563,14 +563,27 @@ const API_H={'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-ve
 // API key check
 function checkApiKey(){
   if(!localStorage.getItem('ak')){
-    const key=prompt('Введи свой API ключ Anthropic (sk-ant-...):\n\nОн сохранится только на твоём телефоне и больше никуда не отправится.');
-    if(key&&key.startsWith('sk-ant-')){
-      localStorage.setItem('ak',key);
-      location.reload();
-    } else if(key) {
-      alert('Ключ должен начинаться с sk-ant-');
-    }
+    showKeyScreen();
   }
+}
+function showKeyScreen(){
+  document.body.innerHTML=`
+  <div style="min-height:100vh;background:var(--sand-l);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;font-family:'Nunito',sans-serif;">
+    <div style="font-size:48px;margin-bottom:16px;">🌿</div>
+    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--soot);margin-bottom:8px;text-align:center;">Мой день</div>
+    <p style="font-size:13px;color:var(--soot3);text-align:center;margin-bottom:28px;line-height:1.6;">Для работы AI-функций нужен API ключ Anthropic.<br>Он хранится только на этом устройстве.</p>
+    <div style="width:100%;max-width:380px;">
+      <input id="keyInput" type="password" placeholder="sk-ant-api03-..." style="width:100%;background:#fff;border:1.5px solid var(--cream3);border-radius:12px;padding:14px 16px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;margin-bottom:12px;">
+      <button onclick="saveKey()" style="width:100%;background:var(--forest2);color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;">Сохранить и войти</button>
+      <p style="font-size:11px;color:var(--soot4);text-align:center;margin-top:12px;">Получить ключ: console.anthropic.com → API Keys</p>
+    </div>
+  </div>`;
+}
+function saveKey(){
+  const val=document.getElementById('keyInput')?.value?.trim();
+  if(!val||!val.startsWith('sk-ant-')){alert('Ключ должен начинаться с sk-ant-');return;}
+  localStorage.setItem('ak',val);
+  location.reload();
 }
 checkApiKey();
 const ALL_TABS=['brief','tasks','cal','workout','new','stats'];
