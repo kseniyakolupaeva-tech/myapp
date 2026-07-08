@@ -244,7 +244,10 @@ body{background:var(--sand-l);color:var(--soot);font-family:'Nunito',sans-serif;
       <div class="hdr-name">Доброе утро, <i>привет</i> ✦</div>
       <div class="hdr-date" id="topDate"></div>
     </div>
-    <div class="hdr-time" id="topTime"></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="hdr-time" id="topTime"></div>
+      <div onclick="showSettings()" style="cursor:pointer;font-size:20px;opacity:.7;" title="Настройки">⚙️</div>
+    </div>
   </div>
 </div>
 
@@ -557,8 +560,10 @@ body{background:var(--sand-l);color:var(--soot);font-family:'Nunito',sans-serif;
 
 <script>
 // ══ CONSTANTS ══
-const API_KEY=localStorage.getItem('ak')||'';
-const API_H={'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+function getApiH(){
+  const key=localStorage.getItem('ak')||'';
+  return {'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+}
 
 // API key check
 function checkApiKey(){
@@ -566,7 +571,30 @@ function checkApiKey(){
     showKeyScreen();
   }
 }
-function showKeyScreen(){
+function showSettings(){
+  const current=localStorage.getItem('ak')||'';
+  const preview=current?current.slice(0,12)+'...**скрыт**':'не введён';
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML=`
+    <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:380px;font-family:Nunito,sans-serif;">
+      <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:6px;">⚙️ Настройки</div>
+      <div style="font-size:12px;color:#888;margin-bottom:16px;">Текущий ключ: <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px;">${preview}</code></div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Новый API ключ:</div>
+      <input id="newKeyInp" type="password" placeholder="sk-ant-api03-..." value="${current}" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px 14px;font-size:13px;font-family:Nunito,sans-serif;outline:none;margin-bottom:12px;">
+      <button onclick="applyNewKey()" style="width:100%;background:#4A7C2F;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif;margin-bottom:8px;">Сохранить ключ</button>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;background:#f5f5f5;color:#555;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif;">Закрыть</button>
+      <p style="font-size:11px;color:#aaa;text-align:center;margin-top:10px;">Ключ хранится только на этом устройстве</p>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function applyNewKey(){
+  const val=document.getElementById('newKeyInp')?.value?.trim();
+  if(!val||!val.startsWith('sk-ant-')){alert('Ключ должен начинаться с sk-ant-');return;}
+  localStorage.setItem('ak',val);
+  document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]')?.remove();
+  toast('Ключ сохранён!');
+}
   document.body.innerHTML=`
   <div style="min-height:100vh;background:var(--sand-l);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;font-family:'Nunito',sans-serif;">
     <div style="font-size:48px;margin-bottom:16px;">🌿</div>
@@ -617,8 +645,10 @@ function updateClock(){
   const n=new Date();
   const D=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
   const M=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-  document.getElementById('topDate').textContent=`${D[n.getDay()]}, ${n.getDate()} ${M[n.getMonth()]}`;
-  document.getElementById('topTime').textContent=n.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+  const td=document.getElementById('topDate');
+  const tt=document.getElementById('topTime');
+  if(td)td.textContent=`${D[n.getDay()]}, ${n.getDate()} ${M[n.getMonth()]}`;
+  if(tt)tt.textContent=n.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
 }
 setInterval(updateClock,1000); updateClock();
 
@@ -690,8 +720,12 @@ async function genBrief(){
 Ответь ТОЛЬКО валидным JSON где каждое поле — строка на русском. Никаких вложенных объектов:
 {"world":"3 главных мировых события (политика экономика), разделяй через \\n","russia":"2-3 события в России сейчас через \\n","ai":"2-3 свежих новости ИИ через \\n","trending":"3 обсуждаемые темы через \\n","cinema":"1-2 сериала на слуху с описанием через \\n","podcast":"конкретный подкаст или видео: название о чём зачем смотреть 3-4 предл","science":"Один по-настоящему удивительный факт о природе мира, устройстве вселенной, человеческом теле, сознании или реальности. Такой факт чтобы человек сказал ого. Объясни механизм или причину. 3-4 предл","focus":"Гороскоп для Водолея на сегодня ${dt}. Коротко и по делу: энергия дня, на что обратить внимание, что может принести день. 3-4 предл. Не банально, без штампов."}`;
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:API_H,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2500,messages:[{role:'user',content:prompt}]})});
-    if(!r.ok) throw new Error('HTTP '+r.status);
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:getApiH(),body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2500,messages:[{role:'user',content:prompt}]})});
+    if(!r.ok){
+      const errBody=await r.json().catch(()=>({}));
+      const errMsg=errBody?.error?.message||'неизвестная ошибка';
+      throw new Error(`HTTP ${r.status}: ${errMsg}`);
+    }
     const d=await r.json();
     let txt=(d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
     const s=txt.indexOf('{'), e=txt.lastIndexOf('}');
@@ -891,7 +925,7 @@ async function analyzePhoto(e){
   res.innerHTML='<div class="dots" style="color:var(--forest2);"><span></span><span></span><span></span></div>';
   const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(file);});
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:API_H,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'Определи блюдо и оцени калорийность. ТОЛЬКО JSON: {"name":"название","cal":число,"note":"комментарий"}'}]}]})});
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:getApiH(),body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'Определи блюдо и оцени калорийность. ТОЛЬКО JSON: {"name":"название","cal":число,"note":"комментарий"}'}]}]})});
     const d=await resp.json();
     let txt=(d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
     const data=JSON.parse(txt);
@@ -905,7 +939,7 @@ async function analyzeMealTxt(){
   btn.disabled=true; btn.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
   const res=document.getElementById('mealTxtRes');
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:API_H,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:`Подсчитай калории: "${txt}". ТОЛЬКО JSON: {"cal":число,"breakdown":"разбивка"}`}]})});
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:getApiH(),body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:`Подсчитай калории: "${txt}". ТОЛЬКО JSON: {"cal":число,"breakdown":"разбивка"}`}]})});
     const d=await r.json();
     let t=(d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
     const data=JSON.parse(t);
@@ -1019,7 +1053,7 @@ ${dataStr}
 Пиши как умный друг который уважает человека и говорит правду. Без "молодец", "умница", "ты справляешься" — только реальная картина. 200-250 слов.`;
 
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:API_H,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:getApiH(),body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d=await r.json();
     const text=d.content?.[0]?.text||'';
@@ -1081,7 +1115,7 @@ async function loadPhrase(){
   btn.disabled=true; btn.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
   const res=document.getElementById('phraseRes');
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:API_H,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:'Репетитор английского. Уровень A2+. Студентка стесняется говорить, не хватает словарного запаса. Одна полезная фраза для работы или быта. ТОЛЬКО JSON: {"phrase":"фраза","translation":"перевод","example":"пример","tip":"совет"}'}]})});
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:getApiH(),body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:'Репетитор английского. Уровень A2+. Студентка стесняется говорить, не хватает словарного запаса. Одна полезная фраза для работы или быта. ТОЛЬКО JSON: {"phrase":"фраза","translation":"перевод","example":"пример","tip":"совет"}'}]})});
     const d=await r.json();
     let t=(d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
     const data=JSON.parse(t);
